@@ -362,7 +362,8 @@ namespace GFTool.Renderer.Scene.GraphicsObjects
 
         private void ApplyUnlitAutoScrollFallback(Shader activeShader, HashSet<string> textureNames)
         {
-            if (!string.Equals(shaderKey, "Unlit", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(shaderKey, "Unlit", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(shaderKey, "Fire", StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }

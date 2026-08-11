@@ -83,7 +83,15 @@ namespace TrinityModelViewer
                     // Ignore warmup failures; model loading will fall back to on-demand generation.
                 }
             }
-            await LoadStartupFilesIfAnyAsync();
+            if (string.IsNullOrWhiteSpace(startupExportUnityFolder))
+            {
+                await LoadStartupFilesIfAnyAsync();
+            }
+            else
+            {
+                startupFilesLoaded = true;
+                await RunStartupUnityBatchExportIfRequestedAsync();
+            }
         }
 
         private void StartFlatSharpWarmup()

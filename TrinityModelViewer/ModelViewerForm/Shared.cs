@@ -75,6 +75,9 @@ namespace TrinityModelViewer
         private System.Threading.CancellationTokenSource? autoLoadAnimationsCts;
         private readonly string[] startupFiles = Array.Empty<string>();
         private bool startupFilesLoaded;
+        private string? startupExportUnityFolder;
+        private string? startupExportUnityAnimFolder;
+        private bool startupExportUnityRecursive = true;
         private Button? loadGfpakAnimationsButton;
         private ContextMenuStrip? animationsContextMenu;
         private ToolStripMenuItem? exportAnimationMenuItem;

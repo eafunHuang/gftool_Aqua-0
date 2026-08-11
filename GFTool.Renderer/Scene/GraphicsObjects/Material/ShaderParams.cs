@@ -391,6 +391,7 @@ namespace GFTool.Renderer.Scene.GraphicsObjects
                 "Eye" => "Eye",
                 "EyeClearCoat" => "EyeClearCoat",
                 "Unlit" => "Unlit",
+                "Fire" => "Fire",
                 "FresnelEffect" => "FresnelEffect",
                 "FresnelBlend" => "FresnelBlend",
                 // TODO Make more shaders.

@@ -283,10 +283,15 @@ namespace GFTool.Renderer.Scene.GraphicsObjects
                 isTransparentByAuraTextures ||
                 isAuraShellMaskSet ||
                 string.Equals(shaderKey, "Water", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(shaderKey, "Fire", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(shaderKey, "Transparent", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(shaderKey, "EyeClearCoatForward", StringComparison.OrdinalIgnoreCase);
 
             transparentBlendMode = TransparentBlendMode.Alpha;
+            if (string.Equals(shaderKey, "Fire", StringComparison.OrdinalIgnoreCase))
+            {
+                transparentBlendMode = TransparentBlendMode.Additive;
+            }
             if (isTransparentByTechnique)
             {
                 transparentBlendMode = TransparentBlendMode.PremultipliedAlpha;

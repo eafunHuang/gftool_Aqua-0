@@ -42,7 +42,11 @@ namespace TrinityModelViewer
             });
             materialUvWrapModeCombo.SelectedIndex = 0;
             settings = ViewerSettings.Load();
-            this.startupFiles = startupFiles?.Where(s => !string.IsNullOrWhiteSpace(s)).ToArray() ?? Array.Empty<string>();
+            var parsedStartup = TrinityModelViewer.Export.ZaUnity.ZaUnityBatchExporter.ParseStartupArgs(startupFiles);
+            this.startupFiles = parsedStartup.RemainingPaths.Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+            startupExportUnityFolder = parsedStartup.ExportUnityFolder;
+            startupExportUnityAnimFolder = parsedStartup.ExportUnityAnimFolder;
+            startupExportUnityRecursive = parsedStartup.ExportUnityRecursive;
             MessageHandler.Instance.DebugLogsEnabled = settings.DebugLogs;
             ApplyRenderSettingsToMenu();
             ApplyTheme();

@@ -138,6 +138,12 @@
     <None Update="Shaders\Water.vsh">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Shaders\Fire.fsh">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Shaders\Fire.vsh">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Shaders\FresnelBlend.fsh">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
