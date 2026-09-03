@@ -59,6 +59,8 @@ namespace TrinityModelViewer
 
         public string LastModelPath { get; set; } = string.Empty;
         public string LastExportTrinityDirectory { get; set; } = string.Empty;
+        public string LastZaUnityExportRoot { get; set; } = string.Empty;
+        public string LastZaUnityImportRoot { get; set; } = string.Empty;
         public List<string> RecentModelPaths { get; set; } = new List<string>();
 
         private static readonly JsonSerializerOptions DeserializeOptions = new JsonSerializerOptions

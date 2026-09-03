@@ -20,12 +20,16 @@ namespace TrinityModelViewer.Export.ZaUnity
         public static void ExportModelToUnityPipeline(
             Model model,
             string? exportRootOverride = null,
+            string? unityImportRootOverride = null,
             IReadOnlyList<Animation>? animations = null)
         {
             if (model == null) throw new ArgumentNullException(nameof(model));
 
             string modelName = SanitizeDirName(string.IsNullOrWhiteSpace(model.Name) ? "model" : model.Name);
             string exportRoot = string.IsNullOrWhiteSpace(exportRootOverride) ? ZaUnityExportPaths.ExportRoot : exportRootOverride;
+            string unityRoot = string.IsNullOrWhiteSpace(unityImportRootOverride)
+                ? ZaUnityExportPaths.UnityImportRoot
+                : unityImportRootOverride;
             string exportDir = Path.Combine(exportRoot, modelName);
             Directory.CreateDirectory(exportDir);
 
@@ -45,15 +49,21 @@ namespace TrinityModelViewer.Export.ZaUnity
             manifest.FbxFile = fbxFileName;
             WriteManifest(manifestPath, manifest);
 
-            CopyToUnityAssets(exportDir, modelName);
+            CopyToUnityAssets(exportDir, modelName, unityRoot);
         }
 
-        public static void SupplementAlternateMaterials(Model model, string? exportRootOverride = null)
+        public static void SupplementAlternateMaterials(
+            Model model,
+            string? exportRootOverride = null,
+            string? unityImportRootOverride = null)
         {
             if (model == null) throw new ArgumentNullException(nameof(model));
 
             string modelName = SanitizeDirName(string.IsNullOrWhiteSpace(model.Name) ? "model" : model.Name);
             string exportRoot = string.IsNullOrWhiteSpace(exportRootOverride) ? ZaUnityExportPaths.ExportRoot : exportRootOverride;
+            string unityRoot = string.IsNullOrWhiteSpace(unityImportRootOverride)
+                ? ZaUnityExportPaths.UnityImportRoot
+                : unityImportRootOverride;
             string exportDir = Path.Combine(exportRoot, modelName);
             Directory.CreateDirectory(exportDir);
 
@@ -95,7 +105,7 @@ namespace TrinityModelViewer.Export.ZaUnity
 
             WriteManifest(manifestPath, manifest);
 
-            string unityDir = Path.Combine(ZaUnityExportPaths.UnityImportRoot, modelName);
+            string unityDir = Path.Combine(unityRoot, modelName);
             Directory.CreateDirectory(unityDir);
             File.Copy(manifestPath, Path.Combine(unityDir, ZaUnityExportPaths.ManifestFileName), overwrite: true);
         }
@@ -177,10 +187,10 @@ namespace TrinityModelViewer.Export.ZaUnity
             }
         }
 
-        private static void CopyToUnityAssets(string exportDir, string modelName)
+        private static void CopyToUnityAssets(string exportDir, string modelName, string unityImportRoot)
         {
-            string destRoot = Path.Combine(ZaUnityExportPaths.UnityImportRoot, modelName);
-            Directory.CreateDirectory(ZaUnityExportPaths.UnityImportRoot);
+            string destRoot = Path.Combine(unityImportRoot, modelName);
+            Directory.CreateDirectory(unityImportRoot);
             CopyDirectory(exportDir, destRoot);
         }
 

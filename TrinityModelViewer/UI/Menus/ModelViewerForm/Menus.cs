@@ -200,6 +200,12 @@ namespace TrinityModelViewer
             var exportUnityBuildingFolderToolStripMenuItem = new ToolStripMenuItem("Batch Export Folder to Unity (Building)...");
             exportUnityBuildingFolderToolStripMenuItem.Click += (s, e) => ExportFolderToUnityBuildingFromDialog();
 
+            var exportUnitySvFbxToolStripMenuItem = new ToolStripMenuItem("Export SV Pokemon to FBX (No Za Shader)...");
+            exportUnitySvFbxToolStripMenuItem.Click += (s, e) => ExportSelectedModelToUnitySvFbx();
+
+            var exportUnitySvFbxFolderToolStripMenuItem = new ToolStripMenuItem("Batch Export SV Pokemon to FBX (No Za Shader)...");
+            exportUnitySvFbxFolderToolStripMenuItem.Click += (s, e) => ExportFolderToUnitySvFbxFromDialog();
+
             var supplementUnityIshokuToolStripMenuItem = new ToolStripMenuItem("Supplement Unity Ishoku Materials (Selected)...");
             supplementUnityIshokuToolStripMenuItem.Click += (s, e) => SupplementSelectedModelUnityIshokuMaterials();
 
@@ -235,8 +241,10 @@ namespace TrinityModelViewer
                 fileToolStripMenuItem.DropDownItems.Insert(next + 5, exportUnityZaShaderFolderToolStripMenuItem);
                 fileToolStripMenuItem.DropDownItems.Insert(next + 6, exportUnityBuildingToolStripMenuItem);
                 fileToolStripMenuItem.DropDownItems.Insert(next + 7, exportUnityBuildingFolderToolStripMenuItem);
-                fileToolStripMenuItem.DropDownItems.Insert(next + 8, supplementUnityIshokuToolStripMenuItem);
-                fileToolStripMenuItem.DropDownItems.Insert(next + 9, supplementUnityIshokuFolderToolStripMenuItem);
+                fileToolStripMenuItem.DropDownItems.Insert(next + 8, exportUnitySvFbxToolStripMenuItem);
+                fileToolStripMenuItem.DropDownItems.Insert(next + 9, exportUnitySvFbxFolderToolStripMenuItem);
+                fileToolStripMenuItem.DropDownItems.Insert(next + 10, supplementUnityIshokuToolStripMenuItem);
+                fileToolStripMenuItem.DropDownItems.Insert(next + 11, supplementUnityIshokuFolderToolStripMenuItem);
             }
             else
             {
@@ -248,6 +256,8 @@ namespace TrinityModelViewer
                 fileToolStripMenuItem.DropDownItems.Add(exportUnityZaShaderFolderToolStripMenuItem);
                 fileToolStripMenuItem.DropDownItems.Add(exportUnityBuildingToolStripMenuItem);
                 fileToolStripMenuItem.DropDownItems.Add(exportUnityBuildingFolderToolStripMenuItem);
+                fileToolStripMenuItem.DropDownItems.Add(exportUnitySvFbxToolStripMenuItem);
+                fileToolStripMenuItem.DropDownItems.Add(exportUnitySvFbxFolderToolStripMenuItem);
                 fileToolStripMenuItem.DropDownItems.Add(supplementUnityIshokuToolStripMenuItem);
                 fileToolStripMenuItem.DropDownItems.Add(supplementUnityIshokuFolderToolStripMenuItem);
             }

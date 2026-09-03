@@ -118,7 +118,19 @@ namespace TrinityModelViewer
 
 
 
-                ZaUnityExporter.ExportModelToUnityPipeline(mdl, animations: animations);
+                string exportRoot = NullIfEmpty(settings.LastZaUnityExportRoot) ?? ZaUnityExportPaths.ExportRoot;
+
+                string unityImportRoot = NullIfEmpty(settings.LastZaUnityImportRoot) ?? ZaUnityExportPaths.UnityImportRoot;
+
+                ZaUnityExporter.ExportModelToUnityPipeline(
+
+                    mdl,
+
+                    exportRootOverride: exportRoot,
+
+                    unityImportRootOverride: unityImportRoot,
+
+                    animations: animations);
 
                 var animInfo = animations is { Count: > 0 }
 
@@ -132,9 +144,9 @@ namespace TrinityModelViewer
 
                     "Za Shader Unity export completed.\n\n" +
 
-                    $"Staging: {ZaUnityExportPaths.ExportRoot}\n" +
+                    $"Staging: {exportRoot}\n" +
 
-                    $"Unity Assets: {ZaUnityExportPaths.UnityImportRoot}{animInfo}\n\n" +
+                    $"Unity Assets: {unityImportRoot}{animInfo}\n\n" +
 
                     "Open Unity project ZaView. If materials were not auto-applied, use menu:\n" +
 
@@ -190,7 +202,29 @@ namespace TrinityModelViewer
 
 
 
-            _ = BatchExportFolderToUnityAsync(modelsFolder, recursive: true, exitAfterComplete: false, animRoot: animFolder);
+            if (!TryPromptZaUnityExportPaths(out string exportRoot, out string unityImportRoot))
+
+            {
+
+                return;
+
+            }
+
+
+
+            _ = BatchExportFolderToUnityAsync(
+
+                modelsFolder,
+
+                recursive: true,
+
+                exitAfterComplete: false,
+
+                animRoot: animFolder,
+
+                exportRoot: exportRoot,
+
+                unityImportRoot: unityImportRoot);
 
         }
 
@@ -218,13 +252,29 @@ namespace TrinityModelViewer
 
                 exitAfterComplete: true,
 
-                animRoot: startupExportUnityAnimFolder);
+                animRoot: startupExportUnityAnimFolder,
+
+                exportRoot: NullIfEmpty(settings.LastZaUnityExportRoot),
+
+                unityImportRoot: NullIfEmpty(settings.LastZaUnityImportRoot));
 
         }
 
 
 
-        private async Task BatchExportFolderToUnityAsync(string folderPath, bool recursive, bool exitAfterComplete, string? animRoot = null)
+        private async Task BatchExportFolderToUnityAsync(
+
+            string folderPath,
+
+            bool recursive,
+
+            bool exitAfterComplete,
+
+            string? animRoot = null,
+
+            string? exportRoot = null,
+
+            string? unityImportRoot = null)
 
         {
 
@@ -360,7 +410,15 @@ namespace TrinityModelViewer
 
 
 
-                            ZaUnityExporter.ExportModelToUnityPipeline(mdl, animations: animations);
+                            ZaUnityExporter.ExportModelToUnityPipeline(
+
+                                mdl,
+
+                                exportRootOverride: exportRoot,
+
+                                unityImportRootOverride: unityImportRoot,
+
+                                animations: animations);
 
                             result.Succeeded++;
 
@@ -414,7 +472,21 @@ namespace TrinityModelViewer
 
                 ReportModelLoadProgress(100);
 
-                ShowBatchExportSummary(folderPath, recursive, animRoot, result, exitAfterComplete);
+                ShowBatchExportSummary(
+
+                    folderPath,
+
+                    recursive,
+
+                    animRoot,
+
+                    result,
+
+                    exitAfterComplete,
+
+                    exportRoot,
+
+                    unityImportRoot);
 
             }
 
@@ -430,7 +502,87 @@ namespace TrinityModelViewer
 
 
 
-        private string? PromptFolder(string description)
+        private static string? NullIfEmpty(string? value)
+
+        {
+
+            return string.IsNullOrWhiteSpace(value) ? null : value;
+
+        }
+
+
+
+        private bool TryPromptZaUnityExportPaths(out string exportRoot, out string unityImportRoot)
+
+        {
+
+            string lastUnity = NullIfEmpty(settings.LastZaUnityImportRoot) ?? ZaUnityExportPaths.UnityImportRoot;
+
+            string? unity = PromptFolder(
+
+                "Select Unity Assets destination (e.g. ...\\Assets\\Imported)",
+
+                lastUnity,
+
+                allowNewFolder: true);
+
+            if (string.IsNullOrWhiteSpace(unity))
+
+            {
+
+                exportRoot = string.Empty;
+
+                unityImportRoot = string.Empty;
+
+                return false;
+
+            }
+
+
+
+            string lastStaging = NullIfEmpty(settings.LastZaUnityExportRoot) ?? ZaUnityExportPaths.ExportRoot;
+
+            string? staging = PromptFolder(
+
+                "Select staging/temp export folder (GLTF/FBX workspace)",
+
+                lastStaging,
+
+                allowNewFolder: true);
+
+            if (string.IsNullOrWhiteSpace(staging))
+
+            {
+
+                exportRoot = string.Empty;
+
+                unityImportRoot = string.Empty;
+
+                return false;
+
+            }
+
+
+
+            settings.LastZaUnityImportRoot = unity;
+
+            settings.LastZaUnityExportRoot = staging;
+
+            settings.Save();
+
+
+
+            exportRoot = staging;
+
+            unityImportRoot = unity;
+
+            return true;
+
+        }
+
+
+
+        private string? PromptFolder(string description, string? initialPath = null, bool allowNewFolder = false)
 
         {
 
@@ -442,9 +594,19 @@ namespace TrinityModelViewer
 
                 UseDescriptionForTitle = true,
 
-                ShowNewFolderButton = false
+                ShowNewFolderButton = allowNewFolder
 
             };
+
+
+
+            if (!string.IsNullOrWhiteSpace(initialPath) && Directory.Exists(initialPath))
+
+            {
+
+                dialog.SelectedPath = initialPath;
+
+            }
 
 
 
@@ -562,9 +724,19 @@ namespace TrinityModelViewer
 
             ZaUnityBatchExportResult result,
 
-            bool exitAfterComplete)
+            bool exitAfterComplete,
+
+            string? exportRoot,
+
+            string? unityImportRoot)
 
         {
+
+            string staging = NullIfEmpty(exportRoot) ?? ZaUnityExportPaths.ExportRoot;
+
+            string unity = NullIfEmpty(unityImportRoot) ?? ZaUnityExportPaths.UnityImportRoot;
+
+
 
             var sb = new StringBuilder();
 
@@ -584,9 +756,9 @@ namespace TrinityModelViewer
 
             sb.AppendLine($"Total: {result.Total}, OK: {result.Succeeded}, Failed: {result.Failed}");
 
-            sb.AppendLine($"Staging: {ZaUnityExportPaths.ExportRoot}");
+            sb.AppendLine($"Staging: {staging}");
 
-            sb.AppendLine($"Unity Assets: {ZaUnityExportPaths.UnityImportRoot}");
+            sb.AppendLine($"Unity Assets: {unity}");
 
 
 
@@ -734,7 +906,11 @@ namespace TrinityModelViewer
 
             {
 
-                ZaUnityExporter.SupplementAlternateMaterials(mdl);
+                string exportRoot = NullIfEmpty(settings.LastZaUnityExportRoot) ?? ZaUnityExportPaths.ExportRoot;
+
+                string unityImportRoot = NullIfEmpty(settings.LastZaUnityImportRoot) ?? ZaUnityExportPaths.UnityImportRoot;
+
+                ZaUnityExporter.SupplementAlternateMaterials(mdl, exportRoot, unityImportRoot);
 
                 MessageBox.Show(
 
@@ -742,9 +918,9 @@ namespace TrinityModelViewer
 
                     "Alternate color material data written to za_materials.json.\n\n" +
 
-                    $"Staging: {ZaUnityExportPaths.ExportRoot}\n" +
+                    $"Staging: {exportRoot}\n" +
 
-                    $"Unity Assets: {ZaUnityExportPaths.UnityImportRoot}\n\n" +
+                    $"Unity Assets: {unityImportRoot}\n\n" +
 
                     "In Unity, run Za → Apply IkCharacter Materials to create *_rare / *_vN .mat files.",
 
@@ -826,6 +1002,10 @@ namespace TrinityModelViewer
 
             var errors = new List<string>();
 
+            string exportRoot = NullIfEmpty(settings.LastZaUnityExportRoot) ?? ZaUnityExportPaths.ExportRoot;
+
+            string unityImportRoot = NullIfEmpty(settings.LastZaUnityImportRoot) ?? ZaUnityExportPaths.UnityImportRoot;
+
             BeginModelLoad();
 
             ClearAll();
@@ -870,7 +1050,7 @@ namespace TrinityModelViewer
 
 
 
-                        ZaUnityExporter.SupplementAlternateMaterials(mdl);
+                        ZaUnityExporter.SupplementAlternateMaterials(mdl, exportRoot, unityImportRoot);
 
                         succeeded++;
 
@@ -924,7 +1104,7 @@ namespace TrinityModelViewer
 
                 sb.AppendLine($"Total: {files.Count}, OK: {succeeded}, Failed: {failed}");
 
-                sb.AppendLine($"Unity Assets: {ZaUnityExportPaths.UnityImportRoot}");
+                sb.AppendLine($"Unity Assets: {unityImportRoot}");
 
 
 
