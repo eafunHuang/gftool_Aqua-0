@@ -254,5 +254,91 @@ namespace GFTool.Renderer.Scene.GraphicsObjects
                     $"[GLSetup] model=\"{Name}\" submesh={submeshIndex} step={step} error={error} counts(pos={posCount},norm={normCount},uv0={uvCount},uv1={uv2Count},color={colorCount},tan={tangentCount},binorm={binormalCount},blendIdx={blendIndexCount},blendW={blendWeightCount},indices={indexCount})");
             }
         }
+
+        /// <summary>
+        /// Release GL buffers, materials/textures, and CPU mesh arrays so batch loads do not leak.
+        /// </summary>
+        public void DisposeResources()
+        {
+            if (VAOs != null)
+            {
+                for (int i = 0; i < VAOs.Length; i++)
+                {
+                    if (VAOs[i] != 0)
+                    {
+                        try { GL.DeleteVertexArray(VAOs[i]); } catch { }
+                        VAOs[i] = 0;
+                    }
+                }
+            }
+
+            if (VBOs != null)
+            {
+                for (int i = 0; i < VBOs.Length; i++)
+                {
+                    if (VBOs[i] != 0)
+                    {
+                        try { GL.DeleteBuffer(VBOs[i]); } catch { }
+                        VBOs[i] = 0;
+                    }
+                }
+            }
+
+            if (EBOs != null)
+            {
+                for (int i = 0; i < EBOs.Length; i++)
+                {
+                    if (EBOs[i] != 0)
+                    {
+                        try { GL.DeleteBuffer(EBOs[i]); } catch { }
+                        EBOs[i] = 0;
+                    }
+                }
+            }
+
+            VAOs = Array.Empty<int>();
+            VBOs = Array.Empty<int>();
+            EBOs = Array.Empty<int>();
+            gpuSetupComplete = false;
+            gpuSetupIndex = -1;
+
+            if (materials != null)
+            {
+                for (int i = 0; i < materials.Length; i++)
+                {
+                    try { materials[i]?.Dispose(); } catch { }
+                }
+            }
+            materials = Array.Empty<Material>();
+            materialMap.Clear();
+
+            Positions.Clear();
+            Normals.Clear();
+            UVs.Clear();
+            UVs2.Clear();
+            HasUv1.Clear();
+            Colors.Clear();
+            Tangents.Clear();
+            Binormals.Clear();
+            BlendIndicies.Clear();
+            BlendWeights.Clear();
+            BlendBoneWeights.Clear();
+            BlendIndiciesOriginal.Clear();
+            BlendMeshNames.Clear();
+            Indices.Clear();
+            HasVertexColors.Clear();
+            HasTangents.Clear();
+            HasBinormals.Clear();
+            HasSkinning.Clear();
+            MaterialNames.Clear();
+            SubmeshNames.Clear();
+            SubmeshParentNodeNames.Clear();
+            loadedMeshFiles.Clear();
+            armature = null;
+            armatureOverride = null;
+            rigidParentBoneIndexBySubmesh = null;
+            submeshVisible = null;
+            uvOverridesBySubmesh.Clear();
+        }
     }
 }

@@ -206,6 +206,9 @@ namespace TrinityModelViewer
             var exportUnitySvFbxFolderToolStripMenuItem = new ToolStripMenuItem("Batch Export SV Pokemon to FBX (No Za Shader)...");
             exportUnitySvFbxFolderToolStripMenuItem.Click += (s, e) => ExportFolderToUnitySvFbxFromDialog();
 
+            var exportSvTeraBuildingsToolStripMenuItem = new ToolStripMenuItem("Batch Export SV Tera Buildings to FBX (No Za Shader)...");
+            exportSvTeraBuildingsToolStripMenuItem.Click += (s, e) => ExportSvTeraBuildingsFromDialog();
+
             var supplementUnityIshokuToolStripMenuItem = new ToolStripMenuItem("Supplement Unity Ishoku Materials (Selected)...");
             supplementUnityIshokuToolStripMenuItem.Click += (s, e) => SupplementSelectedModelUnityIshokuMaterials();
 
@@ -243,8 +246,9 @@ namespace TrinityModelViewer
                 fileToolStripMenuItem.DropDownItems.Insert(next + 7, exportUnityBuildingFolderToolStripMenuItem);
                 fileToolStripMenuItem.DropDownItems.Insert(next + 8, exportUnitySvFbxToolStripMenuItem);
                 fileToolStripMenuItem.DropDownItems.Insert(next + 9, exportUnitySvFbxFolderToolStripMenuItem);
-                fileToolStripMenuItem.DropDownItems.Insert(next + 10, supplementUnityIshokuToolStripMenuItem);
-                fileToolStripMenuItem.DropDownItems.Insert(next + 11, supplementUnityIshokuFolderToolStripMenuItem);
+                fileToolStripMenuItem.DropDownItems.Insert(next + 10, exportSvTeraBuildingsToolStripMenuItem);
+                fileToolStripMenuItem.DropDownItems.Insert(next + 11, supplementUnityIshokuToolStripMenuItem);
+                fileToolStripMenuItem.DropDownItems.Insert(next + 12, supplementUnityIshokuFolderToolStripMenuItem);
             }
             else
             {
@@ -258,6 +262,7 @@ namespace TrinityModelViewer
                 fileToolStripMenuItem.DropDownItems.Add(exportUnityBuildingFolderToolStripMenuItem);
                 fileToolStripMenuItem.DropDownItems.Add(exportUnitySvFbxToolStripMenuItem);
                 fileToolStripMenuItem.DropDownItems.Add(exportUnitySvFbxFolderToolStripMenuItem);
+                fileToolStripMenuItem.DropDownItems.Add(exportSvTeraBuildingsToolStripMenuItem);
                 fileToolStripMenuItem.DropDownItems.Add(supplementUnityIshokuToolStripMenuItem);
                 fileToolStripMenuItem.DropDownItems.Add(supplementUnityIshokuFolderToolStripMenuItem);
             }

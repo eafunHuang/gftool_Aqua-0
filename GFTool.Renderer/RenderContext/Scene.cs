@@ -55,11 +55,20 @@ namespace GFTool.Renderer
         public void ClearScene()
         {
             var root = SceneGraph.Instance.GetRoot();
-            foreach (var overlay in root.children.OfType<HeightFieldMesh>().ToList())
+            for (int i = root.children.Count - 1; i >= 0; i--)
             {
-                try { overlay.Dispose(); } catch { }
+                var child = root.children[i];
+                if (child is HeightFieldMesh overlay)
+                {
+                    try { overlay.Dispose(); } catch { }
+                    root.children.RemoveAt(i);
+                }
+                else if (child is Model model)
+                {
+                    try { model.DisposeResources(); } catch { }
+                    root.children.RemoveAt(i);
+                }
             }
-            root.children.RemoveAll(child => child is Model || child is HeightFieldMesh);
         }
 
     }

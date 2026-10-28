@@ -14,11 +14,15 @@ namespace TrinityModelViewer.Export.SvFbx
             Model model,
             string? exportRootOverride = null,
             string? unityImportRootOverride = null,
-            IReadOnlyList<Animation>? animations = null)
+            IReadOnlyList<Animation>? animations = null,
+            string? modelNameOverride = null)
         {
             if (model == null) throw new ArgumentNullException(nameof(model));
 
-            string modelName = SanitizeDirName(string.IsNullOrWhiteSpace(model.Name) ? "model" : model.Name);
+            string rawName = !string.IsNullOrWhiteSpace(modelNameOverride)
+                ? modelNameOverride
+                : (string.IsNullOrWhiteSpace(model.Name) ? "model" : model.Name);
+            string modelName = SanitizeDirName(rawName);
             string exportRoot = string.IsNullOrWhiteSpace(exportRootOverride) ? SvFbxExportPaths.ExportRoot : exportRootOverride;
             string unityRoot = string.IsNullOrWhiteSpace(unityImportRootOverride)
                 ? SvFbxExportPaths.UnityImportRoot

@@ -80,6 +80,10 @@ namespace TrinitySceneView
             fileToolStripMenuItem.DropDownItems.Add(new ToolStripSeparator());
             fileToolStripMenuItem.DropDownItems.Add(exportSceneGltf);
 
+            var batchExportAllScenes = new ToolStripMenuItem("Batch Export All SV Scenes...");
+            batchExportAllScenes.Click += batchExportAllSvScenes_Click;
+            fileToolStripMenuItem.DropDownItems.Add(batchExportAllScenes);
+
             var openTrtrr = new ToolStripMenuItem("Open Terrain (.trtrr)...");
             openTrtrr.Click += openTRTRR_Click;
             sceneToolStripMenuItem.DropDownItems.Add(openTrtrr);

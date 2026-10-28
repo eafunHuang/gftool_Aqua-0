@@ -27,6 +27,7 @@
     <Compile Include="..\TrinityModelViewer\Export\Gltf\Exporter\GltfExporter\Mesh.cs" Link="Export\Gltf\GltfExporter\Mesh.cs" />
     <Compile Include="..\TrinityModelViewer\Export\Gltf\Exporter\GltfExporter\Skin.cs" Link="Export\Gltf\GltfExporter\Skin.cs" />
     <Compile Include="..\TrinityModelViewer\Export\Gltf\Exporter\GltfExporter\Textures.cs" Link="Export\Gltf\GltfExporter\Textures.cs" />
+    <Compile Include="..\TrinityModelViewer\Export\GltfToFbxRunner.cs" Link="Export\GltfToFbxRunner.cs" />
   </ItemGroup>
 
   <ItemGroup>

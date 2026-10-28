@@ -1,4 +1,5 @@
 using GFTool.Renderer.Scene.GraphicsObjects;
+using OpenTK.Mathematics;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using TrinityModelViewer.Export;
 using TrinityModelViewer.Export.SvFbx;
 using TrinityModelViewer.Export.ZaUnity;
 
@@ -14,6 +16,331 @@ namespace TrinityModelViewer
 {
     public partial class ModelViewerForm
     {
+        private void ExportSvTeraBuildingsFromDialog()
+        {
+            string initial = settings.SvExtractedOutRoot?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(initial) || !Directory.Exists(initial))
+            {
+                initial = @"e:\sv_unpack";
+            }
+
+            string? svRoot = PromptFolder(
+                "Select SV unpack root (contains field_graphic / effect / world)",
+                initial);
+            if (string.IsNullOrWhiteSpace(svRoot))
+            {
+                return;
+            }
+
+            _ = BatchExportSvTeraBuildingsAsync(svRoot);
+        }
+
+        private async Task BatchExportSvTeraBuildingsAsync(string svRoot)
+        {
+            if (string.IsNullOrWhiteSpace(svRoot) || !Directory.Exists(svRoot))
+            {
+                MessageBox.Show(this, $"SV unpack root not found:\n{svRoot}", "Export SV Tera Buildings", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var assets = SvTeraAssetCollector.Collect(svRoot);
+            if (assets.Files.Count == 0)
+            {
+                MessageBox.Show(
+                    this,
+                    "No Tera building files found.\nExpected raid jewelry / raid dome / Area Zero crystal under:\n" + svRoot,
+                    "Export SV Tera Buildings",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            int copied = 0;
+            try
+            {
+                copied = SvTeraAssetCollector.CopyPreservingRelative(svRoot, assets.Files, SvTeraExportPaths.SourceCopyRoot);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, $"Failed to copy source files:\n{ex.Message}", "Export SV Tera Buildings", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            var result = new ZaUnityBatchExportResult { Total = assets.TrmdlFiles.Count };
+            var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var sceneTrmdlFiles = new List<string>();
+            var sceneNodeNames = new List<string>();
+            string? sceneGltfPath = null;
+            BeginModelLoad();
+            ClearAll();
+
+            try
+            {
+                for (int i = 0; i < assets.TrmdlFiles.Count; i++)
+                {
+                    string trmdlPath = assets.TrmdlFiles[i];
+                    string modelName = SvTeraAssetCollector.UniqueModelName(trmdlPath, usedNames);
+                    string label = $"Exporting SV Tera ({i + 1}/{assets.TrmdlFiles.Count}): {modelName}";
+                    loadingForm?.SetMessage(label);
+                    ReportModelLoadProgress((int)Math.Round((i / (double)Math.Max(assets.TrmdlFiles.Count, 1)) * 100.0));
+
+                    Model? mdl = null;
+                    try
+                    {
+                        mdl = await AddModelToSceneAsync(trmdlPath, transient: true);
+                        if (mdl == null)
+                        {
+                            result.Failed++;
+                            result.Errors.Add($"{trmdlPath}: load returned null");
+                            continue;
+                        }
+
+                        SvFbxExporter.ExportModelToUnityPipeline(
+                            mdl,
+                            exportRootOverride: SvTeraExportPaths.FbxStagingRoot,
+                            unityImportRootOverride: SvTeraExportPaths.UnityImportRoot,
+                            modelNameOverride: modelName);
+                        result.Succeeded++;
+                        result.Exported.Add(modelName);
+                        sceneTrmdlFiles.Add(trmdlPath);
+                        sceneNodeNames.Add(modelName);
+                    }
+                    catch (Exception ex)
+                    {
+                        result.Failed++;
+                        result.Errors.Add($"{trmdlPath}: {ex.Message}");
+                    }
+                    finally
+                    {
+                        if (mdl != null)
+                        {
+                            var node = FindModelRootNode(mdl);
+                            if (node != null)
+                            {
+                                RemoveModelNode(node);
+                            }
+                        }
+                    }
+                }
+
+                if (sceneTrmdlFiles.Count > 0)
+                {
+                    string sceneStagingDir = Path.Combine(SvTeraExportPaths.FbxStagingRoot, "_scene");
+                    Directory.CreateDirectory(sceneStagingDir);
+                    sceneGltfPath = Path.Combine(sceneStagingDir, SvTeraExportPaths.SceneGltfFileName);
+                    loadingForm?.SetMessage($"Exporting SV Tera scene glTF ({sceneTrmdlFiles.Count} models)...");
+                    ReportModelLoadProgress(0);
+                    try
+                    {
+                        await ExportSvTeraSceneGltfAsync(sceneTrmdlFiles, sceneNodeNames, sceneGltfPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        result.Errors.Add($"Scene glTF export failed: {ex.Message}");
+                    }
+                }
+
+                ReportModelLoadProgress(100);
+                ShowSvTeraBatchExportSummary(svRoot, copied, assets.Files.Count, result, sceneGltfPath);
+            }
+            finally
+            {
+                EndModelLoad();
+            }
+        }
+
+        private async Task ExportSvTeraSceneGltfAsync(
+            IReadOnlyList<string> trmdlFiles,
+            IReadOnlyList<string> nodeNames,
+            string sceneGltfPath)
+        {
+            int count = trmdlFiles.Count;
+            if (nodeNames.Count < count)
+            {
+                count = nodeNames.Count;
+            }
+
+            if (count <= 0)
+            {
+                throw new InvalidOperationException("No scene models to export.");
+            }
+
+            var instances = new List<GltfExporter.SceneModelInstance>(count);
+            try
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    string trmdlPath = trmdlFiles[i];
+                    if (string.IsNullOrWhiteSpace(trmdlPath))
+                    {
+                        continue;
+                    }
+
+                    string nodeName = nodeNames[i];
+                    if (string.IsNullOrWhiteSpace(nodeName))
+                    {
+                        nodeName = Path.GetFileNameWithoutExtension(trmdlPath);
+                    }
+
+                    loadingForm?.SetMessage($"Scene glTF loading ({i + 1}/{count}): {nodeName}");
+                    ReportModelLoadProgress((int)Math.Round((i / (double)Math.Max(count, 1)) * 100.0));
+
+                    Model? mdl = null;
+                    try
+                    {
+                        mdl = await AddModelToSceneAsync(trmdlPath, transient: true);
+                    }
+                    catch
+                    {
+                        // ignore per-model failure for scene export
+                        mdl = null;
+                    }
+
+                    if (mdl == null)
+                    {
+                        continue;
+                    }
+
+                    instances.Add(new GltfExporter.SceneModelInstance
+                    {
+                        Name = nodeName,
+                        SourcePath = trmdlPath,
+                        Transform = mdl.GetModelMatrix(),
+                        Model = mdl
+                    });
+                }
+
+                if (instances.Count == 0)
+                {
+                    throw new InvalidOperationException("Scene glTF export has no valid loaded models.");
+                }
+
+                loadingForm?.SetMessage("Writing scene glTF...");
+                GltfExporter.ExportScene(instances, sceneGltfPath, sceneName: "SV Tera Buildings");
+
+                // Convert scene glTF → FBX
+                string? sceneDir = Path.GetDirectoryName(sceneGltfPath);
+                if (!string.IsNullOrWhiteSpace(sceneDir))
+                {
+                    loadingForm?.SetMessage("Converting scene glTF to FBX...");
+                    GltfToFbxRunner.ConvertDirectory(sceneDir, SvFbxExportPaths.GltfToFbxScript);
+
+                    // Copy scene FBX + textures to Unity Assets
+                    string sceneFbxName = Path.GetFileNameWithoutExtension(SvTeraExportPaths.SceneGltfFileName);
+                    string unitySceneDir = Path.Combine(SvTeraExportPaths.UnityImportRoot, sceneFbxName);
+                    Directory.CreateDirectory(unitySceneDir);
+                    CopySceneOutputToUnity(sceneDir, sceneFbxName, unitySceneDir);
+                }
+            }
+            finally
+            {
+                // Release models loaded just for scene glTF generation.
+                for (int i = 0; i < instances.Count; i++)
+                {
+                    var mdl = instances[i].Model;
+                    var node = FindModelRootNode(mdl);
+                    if (node != null)
+                    {
+                        RemoveModelNode(node);
+                    }
+                }
+            }
+        }
+
+        private static void CopySceneOutputToUnity(string sourceDir, string sceneFbxName, string destDir)
+        {
+            // Copy .fbx files and texture folder produced by gltf2Fbx conversion.
+            foreach (string file in Directory.GetFiles(sourceDir))
+            {
+                string ext = Path.GetExtension(file);
+                if (string.Equals(ext, ".fbx", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(ext, ".bin", StringComparison.OrdinalIgnoreCase))
+                {
+                    File.Copy(file, Path.Combine(destDir, Path.GetFileName(file)), overwrite: true);
+                }
+            }
+
+            // Copy textures subfolder
+            string texSrcDir = Path.Combine(sourceDir, sceneFbxName + "_textures");
+            if (Directory.Exists(texSrcDir))
+            {
+                string texDestDir = Path.Combine(destDir, sceneFbxName + "_textures");
+                Directory.CreateDirectory(texDestDir);
+                foreach (string file in Directory.GetFiles(texSrcDir))
+                {
+                    File.Copy(file, Path.Combine(texDestDir, Path.GetFileName(file)), overwrite: true);
+                }
+            }
+        }
+
+        private void ShowSvTeraBatchExportSummary(
+            string svRoot,
+            int copied,
+            int totalFiles,
+            ZaUnityBatchExportResult result,
+            string? sceneGltfPath)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"SV root: {svRoot}");
+            sb.AppendLine($"Source files: {copied}/{totalFiles}");
+            sb.AppendLine($"Source copy: {SvTeraExportPaths.SourceCopyRoot}");
+            sb.AppendLine($"Models: Total={result.Total}, OK={result.Succeeded}, Failed={result.Failed}");
+            sb.AppendLine($"FBX staging: {SvTeraExportPaths.FbxStagingRoot}");
+            sb.AppendLine($"Unity Assets: {SvTeraExportPaths.UnityImportRoot}");
+            sb.AppendLine("Mode: FBX only (no Za Shader) + scene glTF (models) + original scenes/textures/particles");
+
+            if (!string.IsNullOrWhiteSpace(sceneGltfPath))
+            {
+                sb.AppendLine($"Scene glTF: {sceneGltfPath}");
+                string sceneFbx = Path.ChangeExtension(sceneGltfPath, ".fbx");
+                if (File.Exists(sceneFbx))
+                {
+                    sb.AppendLine($"Scene FBX: {sceneFbx}");
+                    string sceneFbxName = Path.GetFileNameWithoutExtension(SvTeraExportPaths.SceneGltfFileName);
+                    sb.AppendLine($"Scene FBX (Unity): {Path.Combine(SvTeraExportPaths.UnityImportRoot, sceneFbxName)}");
+                }
+            }
+
+            if (result.Exported.Count > 0)
+            {
+                sb.AppendLine();
+                sb.AppendLine("Exported models:");
+                int show = result.Exported.Count < 20 ? result.Exported.Count : 20;
+                for (int i = 0; i < show; i++)
+                {
+                    sb.AppendLine($"  - {result.Exported[i]}");
+                }
+
+                if (result.Exported.Count > 20)
+                {
+                    sb.AppendLine($"  ... and {result.Exported.Count - 20} more");
+                }
+            }
+
+            if (result.Errors.Count > 0)
+            {
+                sb.AppendLine();
+                sb.AppendLine("Errors:");
+                int showErr = result.Errors.Count < 15 ? result.Errors.Count : 15;
+                for (int i = 0; i < showErr; i++)
+                {
+                    sb.AppendLine($"  - {result.Errors[i]}");
+                }
+
+                if (result.Errors.Count > 15)
+                {
+                    sb.AppendLine($"  ... and {result.Errors.Count - 15} more");
+                }
+            }
+
+            MessageBox.Show(
+                this,
+                sb.ToString(),
+                "Export SV Tera Buildings",
+                MessageBoxButtons.OK,
+                result.Failed > 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
+        }
+
         private void ExportFolderToUnitySvFbxFromDialog()
         {
             string? modelsFolder = PromptFolder(
